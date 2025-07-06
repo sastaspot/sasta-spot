@@ -1,20 +1,22 @@
 import { NextResponse } from "next/server"
-import { cookies } from "next/headers"
 
 export async function POST() {
   try {
-    const cookieStore = cookies()
-
-    // Clear the admin token cookie
-    cookieStore.delete("admin-token")
-
-    // Log logout
-    console.log(`Admin logout at ${new Date().toISOString()}`)
-
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       message: "Logged out successfully",
     })
+
+    // Clear the admin token cookie
+    response.cookies.set("admin-token", "", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 0, // Expire immediately
+      path: "/",
+    })
+
+    return response
   } catch (error) {
     console.error("Logout error:", error)
     return NextResponse.json({ error: "Logout failed" }, { status: 500 })
