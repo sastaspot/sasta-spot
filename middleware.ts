@@ -2,7 +2,9 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { jwtVerify } from "jose"
 
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || "your-super-secret-jwt-key-change-this")
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET || "your-super-secret-jwt-key-change-this-in-production",
+)
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -16,12 +18,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/maintenance", request.url))
   }
 
-  // Protect admin routes (except login)
-  if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
+  // Protect admin routes (except login and auth API routes)
+  if (pathname.startsWith("/admin") && pathname !== "/admin/login" && !pathname.startsWith("/api/admin/auth")) {
     try {
       const token = request.cookies.get("admin-token")
 
       if (!token) {
+        console.log("No admin token found, redirecting to login")
         return NextResponse.redirect(new URL("/admin/login", request.url))
       }
 
@@ -29,18 +32,20 @@ export async function middleware(request: NextRequest) {
       const { payload } = await jwtVerify(token.value, JWT_SECRET)
 
       if (payload.role !== "admin") {
+        console.log("Invalid admin role, redirecting to login")
         return NextResponse.redirect(new URL("/admin/login", request.url))
       }
 
       // Token is valid, allow access
       return NextResponse.next()
     } catch (error) {
+      console.error("Token verification failed in middleware:", error)
       // Invalid token, redirect to login
       return NextResponse.redirect(new URL("/admin/login", request.url))
     }
   }
 
-  // Redirect /admin to /admin/login if not authenticated
+  // Redirect /admin to /admin/dashboard if authenticated, otherwise to login
   if (pathname === "/admin") {
     try {
       const token = request.cookies.get("admin-token")
@@ -53,6 +58,7 @@ export async function middleware(request: NextRequest) {
       }
     } catch (error) {
       // Invalid token, continue to login redirect
+      console.log("Invalid token for /admin redirect")
     }
 
     return NextResponse.redirect(new URL("/admin/login", request.url))
@@ -71,5 +77,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|manifest.json).*)"],
 }
