@@ -2,7 +2,9 @@ import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { jwtVerify } from "jose"
 
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || "your-super-secret-jwt-key-change-this")
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET || "your-super-secret-jwt-key-change-this-in-production",
+)
 
 export async function GET() {
   try {
@@ -10,6 +12,7 @@ export async function GET() {
     const token = cookieStore.get("admin-token")
 
     if (!token) {
+      console.log("No admin token found in cookies")
       return NextResponse.json({ error: "No token found" }, { status: 401 })
     }
 
@@ -17,7 +20,14 @@ export async function GET() {
     const { payload } = await jwtVerify(token.value, JWT_SECRET)
 
     if (payload.role !== "admin") {
+      console.log("Invalid role in token:", payload.role)
       return NextResponse.json({ error: "Invalid role" }, { status: 403 })
+    }
+
+    // Check if token is expired (additional check)
+    if (payload.exp && payload.exp < Date.now() / 1000) {
+      console.log("Token expired")
+      return NextResponse.json({ error: "Token expired" }, { status: 401 })
     }
 
     return NextResponse.json({
