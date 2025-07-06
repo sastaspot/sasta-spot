@@ -9,10 +9,24 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { BarChart3, Users, Globe, Link, Settings, AlertTriangle, Zap, LogOut } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
+interface AdminUser {
+  username: string
+  role: string
+  loginTime: number
+}
+
+interface Stats {
+  totalSites: number
+  totalSearches: number
+  totalAffiliateClicks: number
+  revenue: number
+}
+
 export default function AdminDashboardPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [stats, setStats] = useState({
+  const [user, setUser] = useState<AdminUser | null>(null)
+  const [stats, setStats] = useState<Stats>({
     totalSites: 0,
     totalSearches: 0,
     totalAffiliateClicks: 0,
@@ -27,14 +41,22 @@ export default function AdminDashboardPage() {
 
   const checkAuth = async () => {
     try {
-      const response = await fetch("/api/admin/auth/verify")
+      const response = await fetch("/api/admin/auth/verify", {
+        method: "GET",
+        credentials: "include", // Important for cookies
+      })
+
       if (response.ok) {
+        const data = await response.json()
         setIsAuthenticated(true)
+        setUser(data.user)
         fetchStats()
       } else {
+        console.log("Auth verification failed:", response.status)
         router.push("/admin/login")
       }
     } catch (error) {
+      console.error("Auth check error:", error)
       router.push("/admin/login")
     } finally {
       setLoading(false)
@@ -43,9 +65,13 @@ export default function AdminDashboardPage() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch("/api/admin/stats")
-      const data = await response.json()
-      setStats(data)
+      const response = await fetch("/api/admin/stats", {
+        credentials: "include",
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setStats(data)
+      }
     } catch (error) {
       console.error("Error fetching stats:", error)
     }
@@ -53,14 +79,22 @@ export default function AdminDashboardPage() {
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/admin/auth/logout", { method: "POST" })
-      toast({
-        title: "Logged Out",
-        description: "You have been successfully logged out",
+      const response = await fetch("/api/admin/auth/logout", {
+        method: "POST",
+        credentials: "include",
       })
-      router.push("/admin/login")
+
+      if (response.ok) {
+        toast({
+          title: "Logged Out",
+          description: "You have been successfully logged out",
+        })
+        router.push("/admin/login")
+      }
     } catch (error) {
       console.error("Logout error:", error)
+      // Force redirect even if logout API fails
+      router.push("/admin/login")
     }
   }
 
@@ -88,7 +122,10 @@ export default function AdminDashboardPage() {
             </div>
             <div>
               <h1 className="text-3xl font-bold">Sasta Spot Admin</h1>
-              <p className="text-muted-foreground">Secure Admin Dashboard</p>
+              <p className="text-muted-foreground">
+                Welcome back, {user?.username} • Logged in since{" "}
+                {user?.loginTime ? new Date(user.loginTime).toLocaleString() : "Unknown"}
+              </p>
             </div>
           </div>
           <div className="flex gap-2">
