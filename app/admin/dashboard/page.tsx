@@ -1,13 +1,23 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Navigation } from "@/components/navigation"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { BarChart3, Users, Globe, Link, Settings, AlertTriangle, Zap, LogOut } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Users,
+  Search,
+  TrendingUp,
+  DollarSign,
+  Activity,
+  Settings,
+  LogOut,
+  Shield,
+  Database,
+  Globe,
+} from "lucide-react"
 
 interface AdminUser {
   username: string
@@ -15,225 +25,297 @@ interface AdminUser {
   loginTime: number
 }
 
-interface Stats {
-  totalSites: number
-  totalSearches: number
-  totalAffiliateClicks: number
-  revenue: number
-}
-
-export default function AdminDashboardPage() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [loading, setLoading] = useState(true)
+export default function AdminDashboard() {
   const [user, setUser] = useState<AdminUser | null>(null)
-  const [stats, setStats] = useState<Stats>({
-    totalSites: 0,
+  const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState({
+    totalUsers: 0,
     totalSearches: 0,
-    totalAffiliateClicks: 0,
-    revenue: 0,
+    totalRevenue: 0,
+    activeUsers: 0,
   })
   const router = useRouter()
-  const { toast } = useToast()
 
   useEffect(() => {
     checkAuth()
+    loadStats()
   }, [])
 
   const checkAuth = async () => {
     try {
       const response = await fetch("/api/admin/auth/verify", {
-        method: "GET",
-        credentials: "include", // Important for cookies
+        credentials: "include",
       })
 
       if (response.ok) {
         const data = await response.json()
-        setIsAuthenticated(true)
         setUser(data.user)
-        fetchStats()
       } else {
-        console.log("Auth verification failed:", response.status)
         router.push("/admin/login")
       }
     } catch (error) {
-      console.error("Auth check error:", error)
+      console.error("Auth check failed:", error)
       router.push("/admin/login")
     } finally {
       setLoading(false)
     }
   }
 
-  const fetchStats = async () => {
+  const loadStats = async () => {
     try {
-      const response = await fetch("/api/admin/stats", {
-        credentials: "include",
-      })
+      const response = await fetch("/api/admin/stats")
       if (response.ok) {
         const data = await response.json()
         setStats(data)
       }
     } catch (error) {
-      console.error("Error fetching stats:", error)
+      console.error("Failed to load stats:", error)
     }
   }
 
   const handleLogout = async () => {
     try {
-      const response = await fetch("/api/admin/auth/logout", {
+      await fetch("/api/admin/auth/logout", {
         method: "POST",
         credentials: "include",
       })
-
-      if (response.ok) {
-        toast({
-          title: "Logged Out",
-          description: "You have been successfully logged out",
-        })
-        router.push("/admin/login")
-      }
-    } catch (error) {
-      console.error("Logout error:", error)
-      // Force redirect even if logout API fails
       router.push("/admin/login")
+    } catch (error) {
+      console.error("Logout failed:", error)
     }
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
       </div>
     )
   }
 
-  if (!isAuthenticated) {
+  if (!user) {
     return null
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navigation />
-
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
-              <Zap className="w-8 h-8 text-primary-foreground" />
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center space-x-4">
+              <Shield className="h-8 w-8 text-blue-600" />
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+                <p className="text-sm text-gray-500">Sasta Spot Management</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold">Sasta Spot Admin</h1>
-              <p className="text-muted-foreground">
-                Welcome back, {user?.username} • Logged in since{" "}
-                {user?.loginTime ? new Date(user.loginTime).toLocaleString() : "Unknown"}
-              </p>
+            <div className="flex items-center space-x-4">
+              <Badge variant="secondary" className="px-3 py-1">
+                {user.username}
+              </Badge>
+              <Button variant="outline" size="sm" onClick={handleLogout}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
             </div>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleLogout}>
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
-            </Button>
           </div>
         </div>
+      </header>
 
-        {/* Security Alert */}
-        <Alert className="mb-6 border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>🔒 Secure session active. All admin actions are logged for security.</AlertDescription>
-        </Alert>
-
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Active Sites</p>
-                  <p className="text-2xl font-bold">{stats.totalSites}</p>
-                </div>
-                <Globe className="w-8 h-8 text-primary" />
-              </div>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalUsers.toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground">+12% from last month</p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Searches</p>
-                  <p className="text-2xl font-bold">{stats.totalSearches.toLocaleString()}</p>
-                </div>
-                <Users className="w-8 h-8 text-primary" />
-              </div>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Searches</CardTitle>
+              <Search className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalSearches.toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground">+8% from last month</p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Affiliate Clicks</p>
-                  <p className="text-2xl font-bold">{stats.totalAffiliateClicks.toLocaleString()}</p>
-                </div>
-                <Link className="w-8 h-8 text-primary" />
-              </div>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Revenue</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">₹{stats.totalRevenue.toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground">+15% from last month</p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Revenue</p>
-                  <p className="text-2xl font-bold">₹{stats.revenue.toLocaleString()}</p>
-                </div>
-                <BarChart3 className="w-8 h-8 text-primary" />
-              </div>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Active Users</CardTitle>
+              <Activity className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.activeUsers.toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground">+5% from last hour</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Site Management</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground mb-4">Manage e-commerce sites and scraping</p>
-              <Button className="w-full">
-                <Globe className="w-4 h-4 mr-2" />
-                Manage Sites
-              </Button>
-            </CardContent>
-          </Card>
+        {/* Main Content */}
+        <Tabs defaultValue="overview" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="users">Users</TabsTrigger>
+            <TabsTrigger value="products">Products</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
+          </TabsList>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>User Analytics</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground mb-4">View user activity and engagement</p>
-              <Button className="w-full">
-                <Users className="w-4 h-4 mr-2" />
-                View Analytics
-              </Button>
-            </CardContent>
-          </Card>
+          <TabsContent value="overview" className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Activity</CardTitle>
+                  <CardDescription>Latest user activities and system events</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">New user registration</p>
+                        <p className="text-xs text-muted-foreground">2 minutes ago</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-4">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">Product search: iPhone 15</p>
+                        <p className="text-xs text-muted-foreground">5 minutes ago</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-4">
+                      <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">Price update completed</p>
+                        <p className="text-xs text-muted-foreground">10 minutes ago</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>System Settings</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground mb-4">Configure system and security</p>
-              <Button className="w-full">
-                <Settings className="w-4 h-4 mr-2" />
-                Settings
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+              <Card>
+                <CardHeader>
+                  <CardTitle>System Status</CardTitle>
+                  <CardDescription>Current system health and performance</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Database className="h-4 w-4" />
+                        <span className="text-sm">Database</span>
+                      </div>
+                      <Badge variant="secondary" className="bg-green-100 text-green-800">
+                        Healthy
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Globe className="h-4 w-4" />
+                        <span className="text-sm">API Services</span>
+                      </div>
+                      <Badge variant="secondary" className="bg-green-100 text-green-800">
+                        Online
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <TrendingUp className="h-4 w-4" />
+                        <span className="text-sm">Performance</span>
+                      </div>
+                      <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                        Good
+                      </Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="users">
+            <Card>
+              <CardHeader>
+                <CardTitle>User Management</CardTitle>
+                <CardDescription>Manage registered users and their activities</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">User management features will be implemented here.</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="products">
+            <Card>
+              <CardHeader>
+                <CardTitle>Product Management</CardTitle>
+                <CardDescription>Manage products and price tracking</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">Product management features will be implemented here.</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="analytics">
+            <Card>
+              <CardHeader>
+                <CardTitle>Analytics Dashboard</CardTitle>
+                <CardDescription>Detailed analytics and reporting</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">Analytics dashboard will be implemented here.</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <Card>
+              <CardHeader>
+                <CardTitle>System Settings</CardTitle>
+                <CardDescription>Configure system settings and preferences</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <Button variant="outline" className="w-full justify-start bg-transparent">
+                    <Settings className="h-4 w-4 mr-2" />
+                    General Settings
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start bg-transparent">
+                    <Shield className="h-4 w-4 mr-2" />
+                    Security Settings
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start bg-transparent">
+                    <Database className="h-4 w-4 mr-2" />
+                    Database Settings
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   )
