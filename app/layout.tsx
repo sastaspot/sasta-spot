@@ -4,6 +4,8 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { CurrencyProvider } from "@/hooks/use-currency"
+import { GoogleAnalytics } from "@/components/google-analytics"
+import { Suspense } from "react"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -63,13 +65,6 @@ export const metadata: Metadata = {
         alt: "Sasta Spot - India's Best Price Comparison Site",
         type: "image/jpeg",
       },
-      {
-        url: "/og-image-square.jpg",
-        width: 1200,
-        height: 1200,
-        alt: "Sasta Spot - Compare Prices & Save Money",
-        type: "image/jpeg",
-      },
     ],
   },
   twitter: {
@@ -95,22 +90,10 @@ export const metadata: Metadata = {
     },
   },
   verification: {
-    google: "your-google-site-verification-code",
-    yandex: "your-yandex-verification-code",
-    yahoo: "your-yahoo-verification-code",
+    google: process.env.GOOGLE_SITE_VERIFICATION,
   },
   category: "shopping",
   classification: "price comparison",
-  other: {
-    "mobile-web-app-capable": "yes",
-    "apple-mobile-web-app-capable": "yes",
-    "apple-mobile-web-app-status-bar-style": "default",
-    "apple-mobile-web-app-title": "Sasta Spot",
-    "application-name": "Sasta Spot",
-    "msapplication-TileColor": "#000000",
-    "theme-color": "#000000",
-  },
-    generator: 'v0.dev'
 }
 
 const jsonLd = {
@@ -138,7 +121,6 @@ const jsonLd = {
       height: 512,
     },
   },
-  sameAs: ["https://twitter.com/sastaspot", "https://facebook.com/sastaspot", "https://instagram.com/sastaspot"],
 }
 
 export default function RootLayout({
@@ -153,19 +135,17 @@ export default function RootLayout({
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
         <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
-        <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#000000" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="Sasta Spot" />
-        <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="msapplication-TileColor" content="#000000" />
-        <meta name="theme-color" content="#000000" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       </head>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <CurrencyProvider>{children}</CurrencyProvider>
+          <CurrencyProvider>
+            <Suspense fallback={null}>
+              {children}
+              <GoogleAnalytics />
+            </Suspense>
+          </CurrencyProvider>
         </ThemeProvider>
       </body>
     </html>
