@@ -9,6 +9,14 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  async rewrites() {
+    return [
+      {
+        source: '/sitemap.xml',
+        destination: '/sitemap', // points to app/sitemap.ts
+      },
+    ];
+  },
 }
 
 export default nextConfig
