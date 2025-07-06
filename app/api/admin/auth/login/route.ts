@@ -46,9 +46,9 @@ export async function POST(request: Request) {
     response.cookies.set("admin-token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax", // Changed from "strict" to "lax" for better compatibility
+      sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
-      path: "/", // Changed from "/admin" to "/" for broader access
+      path: "/",
     })
 
     // Log successful login
